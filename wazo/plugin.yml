@@ -9,4 +9,4 @@ tags:
 homepage: https://github.com/sboily/incrediblepbx-firewall
 debian_depends:
   - dnsutils
-  - netfilter-persistent
+  - iptables-persistent
