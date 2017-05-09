@@ -1,0 +1,55 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0+
+
+case "$1" in
+    build)
+        ;;
+
+    package)
+        cp -R etc ${pkgdir}/
+        cp -R usr ${pkgdir}/
+        ;;
+
+    install)
+        /sbin/iptables -P INPUT ACCEPT
+        /sbin/iptables -P OUTPUT ACCEPT
+        /sbin/iptables -P FORWARD ACCEPT
+        /sbin/iptables -F
+
+        apt-get -y install dnsutils
+        sed -i '/ipchecker/d' /etc/crontab
+        echo "*/10 5-22 * * * root /usr/local/sbin/ipchecker > /dev/null 2>&1" >> /etc/crontab
+        cp /etc/rc.local /etc/rc.local.orig
+        echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+        echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+        serverip=$(/sbin/ifconfig | grep "inet addr" | head -1 | cut -f 2 -d ":" | cut -f 1 -d " ")
+        publicip=$(curl -s -S --user-agent "Mozilla/4.0" http://myip.incrediblepbx.com | awk 'NR==2')
+        sed -i 's|8.8.4.4|'$serverip'|' /etc/iptables/rules.v4
+        sed -i 's|74.86.213.25|'$publicip'|' /etc/iptables/rules.v4
+        sed -i 's|-A INPUT -s  -j|#-A INPUT -s  -j|g' /etc/iptables/rules.v4
+        sed -i 's|-A INPUT -s  -p|#-A INPUT -s  -p|g' /etc/iptables/rules.v4
+        sed -i 's|-A INPUT -p udp -m udp --dport 69 -j ACCEPT|#-A INPUT -p udp -m udp --dport 69 -j ACCEPT|' /etc/iptables/rules.v4
+        sed -i 's|-A INPUT -p udp -m udp --dport 69 -j ACCEPT|#-A INPUT -p udp -m udp --dport 69 -j ACCEPT|' /etc/iptables/rules.v4.ubuntu14
+        sed -i 's|1024|9999|' /etc/iptables/rules.v6
+        iptables-restart
+        ;;
+
+    uninstall)
+        /sbin/iptables -P INPUT ACCEPT
+        /sbin/iptables -P OUTPUT ACCEPT
+        /sbin/iptables -P FORWARD ACCEPT
+        /sbin/iptables -F
+
+        apt-get remove -y dnsutils
+        cp /etc/crontab /tmp/crontab.backup
+        cat /etc/crontab | grep -v ipchecker > /etc/crontab.restore
+        mv /etc/crontab.restore /etc/crontab
+        sed -i 's|9999|1024|' /etc/iptables/rules.v6
+        iptables-restart
+        ;;
+
+    *)
+        echo "$0 called with unknown argument '$1'" >&2
+        exit 1
+    ;;
+esac

@@ -1,0 +1,73 @@
+#!/bin/bash
+
+#     ipchecker (c) Copyright 2012-2017, Ward Mundy & Associates LLC. All Rights Reserved.
+#
+#                    ipchecker 2.2U is licensed under the GPL2 license
+#
+#  For a copy of license, visit http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+#
+
+# Don't make changes below this line
+cd /root
+
+# Special thanks to @sukasem on the PIAF Forum for automating this script
+# with the 10 lines of code which immediately follow
+
+i=0
+for fn in `ls *.iptables`
+do
+testip=`cat $fn | cut -f 2 -d " "`
+if [ "$testip" != "1.1.1.1" ] 
+then
+account[$i]=$fn;
+let i=i+1;
+fi
+done
+
+element_count=${#account[@]}
+restartflag=0
+index=0
+while [ "$index" -lt "$element_count" ]
+do
+ if [ ! -s "${account[$index]}" ]; then
+  echo "Ooops. ${account[$index]} not found."
+  ip="0.0.0.0"
+  test=$ip
+  fqdn=$ip
+ else
+ fqdn=`cat ${account[$index]} | cut -f 1 -d " "`
+   ip=`cat ${account[$index]} | cut -f 2 -d " "`
+ test=`dig +short $fqdn`
+ LEN=${#test}
+ if [ $LEN -gt 15 ]; then
+  echo "Ooops. We gotta a DIG overage problem. Forcing a match on IP to avoid disaster."
+  test=$ip
+ fi
+ if [ $LEN -lt 7 ]; then
+  echo "Ooops. We gotta a DIG fail problem. Forcing a match on IP to avoid disaster."
+  test=$ip
+ fi
+ if [ "$ip" = "$fqdn" ]; then
+  test=$ip
+  echo "Ooops. Missing FQDN. Entry ignored."
+ fi
+fi
+if [ "$ip" != "$test" ]; then
+ echo "Account ${account[$index]} CHANGED"
+ restartflag=1
+ echo "  FQDN: $fqdn"
+ echo "OLD IP: $ip"
+ echo "NEW IP: $test"
+ echo "$fqdn $test" > /root/${account[$index]}
+#else
+# echo "Account ${account[$index]} OK"
+fi
+((index++))
+done
+if [ $restartflag -eq 1 ]; then
+ /usr/local/sbin/iptables-restart
+fi
+
+exit 0
+
+#eof

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# sample custom rule for full server access looks like this
+# /sbin/iptables -A INPUT -s yourFQDN.dyndns.org -j ACCEPT
+
+# custom rules go below here
+
+
+# do not edit below here
+

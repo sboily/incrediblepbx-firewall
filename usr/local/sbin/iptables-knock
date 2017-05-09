@@ -1,0 +1,37 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+    echo error: iptables-knock requires an IP address to WhiteList
+    exit 1
+fi
+
+ip=$1
+
+if [ "$ip" = "activate" ]; then
+  sed -i 's|/sbin/iptables -A INPUT -s %IP% -j ACCEPT|/usr/local/sbin/iptables-knock %IP%|' /etc/knockd.conf
+  /etc/init.d/knockd restart
+  echo "PortKnocker IP addresses now will be permanently stored to WhiteList."
+  echo " "
+  exit 2
+fi
+
+
+timestamp=$(date +%s)
+filename=$timestamp.iptables
+tmpfile=/tmp/$timestamp
+
+
+# first, we activate the new WhiteList rule
+/sbin/iptables -A INPUT -s $ip -j ACCEPT
+
+# second, we add it to PortKnocker table of custom rules
+echo "1.1.1.1 1.1.1.1" > /root/$filename
+
+# third, we add it to our custom whitelist script for iptables-restart
+echo "# // New entry for $filename" > $tmpfile
+echo "/sbin/iptables -A INPUT -s $ip -j ACCEPT" >> $tmpfile
+echo "# // End entry for $filename" >> $tmpfile
+sed -i '/# custom rules go below here/r '$tmpfile'' /usr/local/sbin/iptables-custom
+rm -f $tmpfile
+
+# eof

@@ -1,0 +1,9 @@
+name: firewall
+namespace: incrediblepbx
+version: 0.0.1
+author: Ward Mundy
+display_name: Travelin' Man 3
+tags:
+  - incrediblepbx
+  - application
+homepage: https://github.com/sboily/incrediblepbx-firewall
