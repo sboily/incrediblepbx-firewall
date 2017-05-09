@@ -11,15 +11,8 @@ case "$1" in
         ;;
 
     install)
-        /sbin/iptables -P INPUT ACCEPT
-        /sbin/iptables -P OUTPUT ACCEPT
-        /sbin/iptables -P FORWARD ACCEPT
-        /sbin/iptables -F
-
+        flush_iptables
         apt-get -y install dnsutils
-        sed -i '/ipchecker/d' /etc/crontab
-        echo "*/10 5-22 * * * root /usr/local/sbin/ipchecker > /dev/null 2>&1" >> /etc/crontab
-        cp /etc/rc.local /etc/rc.local.orig
         echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
         echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
         serverip=$(/sbin/ifconfig | grep "inet addr" | head -1 | cut -f 2 -d ":" | cut -f 1 -d " ")
@@ -29,23 +22,13 @@ case "$1" in
         sed -i 's|-A INPUT -s  -j|#-A INPUT -s  -j|g' /etc/iptables/rules.v4
         sed -i 's|-A INPUT -s  -p|#-A INPUT -s  -p|g' /etc/iptables/rules.v4
         sed -i 's|-A INPUT -p udp -m udp --dport 69 -j ACCEPT|#-A INPUT -p udp -m udp --dport 69 -j ACCEPT|' /etc/iptables/rules.v4
-        sed -i 's|-A INPUT -p udp -m udp --dport 69 -j ACCEPT|#-A INPUT -p udp -m udp --dport 69 -j ACCEPT|' /etc/iptables/rules.v4.ubuntu14
         sed -i 's|1024|9999|' /etc/iptables/rules.v6
-        iptables-restart
+        /usr/local/sbin/iptables-restart
         ;;
 
     uninstall)
-        /sbin/iptables -P INPUT ACCEPT
-        /sbin/iptables -P OUTPUT ACCEPT
-        /sbin/iptables -P FORWARD ACCEPT
-        /sbin/iptables -F
-
+        flush_iptables
         apt-get remove -y dnsutils
-        cp /etc/crontab /tmp/crontab.backup
-        cat /etc/crontab | grep -v ipchecker > /etc/crontab.restore
-        mv /etc/crontab.restore /etc/crontab
-        sed -i 's|9999|1024|' /etc/iptables/rules.v6
-        iptables-restart
         ;;
 
     *)
@@ -53,3 +36,10 @@ case "$1" in
         exit 1
     ;;
 esac
+
+function flush_iptables() {
+    /sbin/iptables -P INPUT ACCEPT
+    /sbin/iptables -P OUTPUT ACCEPT
+    /sbin/iptables -P FORWARD ACCEPT
+    /sbin/iptables -F
+}
