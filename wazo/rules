@@ -1,6 +1,14 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-3.0+
 
+
+function flush_iptables {
+    /sbin/iptables -P INPUT ACCEPT
+    /sbin/iptables -P OUTPUT ACCEPT
+    /sbin/iptables -P FORWARD ACCEPT
+    /sbin/iptables -F
+}
+
 case "$1" in
     build)
         ;;
@@ -12,7 +20,7 @@ case "$1" in
 
     install)
         flush_iptables
-        apt-get -y install dnsutils
+        apt-get -y install dnsutils netfilter-persistent
         echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
         echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
         serverip=$(/sbin/ifconfig | grep "inet addr" | head -1 | cut -f 2 -d ":" | cut -f 1 -d " ")
@@ -28,7 +36,7 @@ case "$1" in
 
     uninstall)
         flush_iptables
-        apt-get remove -y dnsutils
+        apt-get remove -y dnsutils netfilter-persistent
         ;;
 
     *)
@@ -37,9 +45,3 @@ case "$1" in
     ;;
 esac
 
-function flush_iptables() {
-    /sbin/iptables -P INPUT ACCEPT
-    /sbin/iptables -P OUTPUT ACCEPT
-    /sbin/iptables -P FORWARD ACCEPT
-    /sbin/iptables -F
-}
