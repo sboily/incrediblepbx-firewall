@@ -7,3 +7,6 @@ tags:
   - incrediblepbx
   - application
 homepage: https://github.com/sboily/incrediblepbx-firewall
+debian_depends:
+  - dnsutils
+  - netfilter-persistent
