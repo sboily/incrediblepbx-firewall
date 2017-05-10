@@ -31,6 +31,7 @@ case "$1" in
 
     uninstall)
         flush_iptables
+        systemctl restart fail2ban
         ;;
 
     *)
